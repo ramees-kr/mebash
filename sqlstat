@@ -1,0 +1,44 @@
+#!/bin/bash
+
+helpFunction()
+{
+   echo "This script reads MySQLStats.out in NI/NetMRI support bundle and prints various results in a readable format"
+   echo -e "\nSyntax: sqlstats \nTo be run from SupportBundle/system_stats folder "
+   echo "-h Print this Help."
+   exit 1 # Exit script after printing help
+}
+
+u="$USER"
+
+while getopts ":h" option; do
+   case $option in
+      h) # display Help
+         helpFunction
+         exit;;
+     \?) # incorrect option
+         echo -e "Error: Invalid option\n"
+         helpFunction
+         exit;;
+   esac
+done
+
+readarray -t my_array < <(sed '1,1d;15,$d' ./MySQLStats.out | perl -lne 'print $1 if /COLUMN=(.*),/')
+
+delim=""
+joined=""
+for item in "${my_array[@]}"; do
+  joined="$joined$delim$item"
+  delim=","
+done
+
+touch tmpsqlstats
+cat /dev/null > tmpsqlstats
+
+echo "$joined" >> tmpsqlstats
+echo "$(tail -n +15 MySQLStats.out | grep GB)" >> tmpsqlstats
+
+#Feature1 = Print tables larger than 1GB
+echo -e "MySQL Tables Greater than 1GB in Size:"
+readcsv tmpsqlstats -c Database TableName TotalSizeFmt
+
+#cat /dev/null > tmpsqlstats
