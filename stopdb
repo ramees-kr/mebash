@@ -1,0 +1,36 @@
+#!/bin/bash
+
+helpFunction()
+{
+   echo "This script stops all the netmridb containers currently run by you all at once"
+   echo -e "\nSyntax: stopdb"
+   echo "-h Print this Help."
+   exit 1 # Exit script after printing help
+}
+
+u="$USER"
+
+while getopts ":h" option; do
+   case $option in
+      h) # display Help
+         helpFunction
+         exit;;
+     \?) # incorrect option
+         echo -e "Error: Invalid option\n"
+         helpFunction
+         exit;;
+   esac
+done
+
+readarray -t my_array < <(netmridb -l | grep "$u" | grep -v 'Exited' | perl -lne 'print $1 if /$u-(.*)/')
+
+if [ ${#my_array[@]} -eq 0 ];
+then
+        echo -e "\n\nYou currently do not have any running containers/All containers have already been stopped\nGood Job!!!!"
+else
+        for f in "${my_array[@]}";
+        do
+                netmridb --stop -d -c $f
+                sleep 2
+        done
+fi
